@@ -1,10 +1,11 @@
-make
-mkdir -p .ubuntu/cec-daemon_2.2.0-2/usr/local/bin/
-cp ./cec-daemon .ubuntu/cec-daemon_2.2.0-2/usr/local/bin/
-mkdir -p .ubuntu/cec-daemon_2.2.0-2/DEBIAN
-cat > .ubuntu/cec-daemon_2.2.0-2/DEBIAN/control <<EOF
+#!/bin/bash
+VERSION=2.2.0-4
+mkdir -p .ubuntu/cec-daemon_$VERSION/usr/local/bin/
+cp ./cec-daemon .ubuntu/cec-daemon_$VERSION/usr/local/bin/
+mkdir -p .ubuntu/cec-daemon_$VERSION/DEBIAN
+cat > .ubuntu/cec-daemon_$VERSION/DEBIAN/control <<EOF
 Package: cec-daemon
-Version: 2.2.0-2
+Version: $VERSION
 Section: base
 Priority: optional
 Architecture: i386
@@ -13,5 +14,5 @@ Maintainer: spilikin.com
 Description: CEC Daemon
 EOF
 cd .ubuntu/
-dpkg-deb --build cec-daemon_2.2.0-2
+dpkg-deb --build cec-daemon_$VERSION
 

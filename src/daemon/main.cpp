@@ -38,7 +38,6 @@ const cec_logical_address CEC_DEVICE_ADAPTER = (cec_logical_address)1;
 ICECCallbacks        g_callbacks;
 libcec_configuration g_config;
 int                  g_cecLogLevel(-1);
-int                  g_cecDefaultLogLevel(CEC_LOG_ALL);
 ofstream             g_logOutput;
 bool                 g_bShortLog(false);
 CStdString           g_strPort;
@@ -50,7 +49,8 @@ ICECAdapter*         g_parser;
 int                  g_socket_server; 
 FILE*                g_logfile;
 bool                 g_cec_compact_log(true);
-
+bool				 g_log_level(CEC_LOG_ALL);
+	
 void on_signal(int iSignal) {
 	printf("signal caught: %d - exiting\n", iSignal);
 	g_bExit = true;
@@ -107,6 +107,9 @@ static void log(cec_log_level level, const char *strFormat, ...) {
 
 int onCecLogMessage(void *UNUSED(cbParam), const cec_log_message message)
 {
+	if (message.level > g_log_level) {
+		return 0;
+	}
 	// if comnactp log is wished, ignore some messages
 	if (g_cec_compact_log) {
 		if (message.level == CEC_LOG_TRAFFIC) {
@@ -136,6 +139,14 @@ int onCecCommand(void *UNUSED(cbParam), const cec_command command)
 int onCecAlert(void *UNUSED(cbParam), const libcec_alert type, const libcec_parameter param)
 {
 	log(CEC_LOG_DEBUG, "CEC_ALERT: type: %d, parameter: %s", type, param.paramData);
+
+	switch(type) {
+		case CEC_ALERT_CONNECTION_LOST:
+		log(CEC_LOG_ERROR, "Connection to CEC adapter lost, quiting daemon");
+		g_bExit = true;
+		break;
+	}
+
  	return 0;
 }
 
@@ -405,24 +416,28 @@ int main (int argc, char *argv[]) {
 
     cec_adapter devices[10];
 	log(CEC_LOG_DEBUG, "Looking for CEC Adapter");	
-    uint8_t iDevicesFound = g_parser->FindAdapters(devices, 10, NULL);
+
+	while(1) {
+		
+	    uint8_t iDevicesFound = g_parser->FindAdapters(devices, 10, NULL);
+		if (iDevicesFound < 1) {
+			//log(CEC_LOG_ERROR, "CEC Adapter not found");
+			usleep(2000000);
+			continue;
+		}
+
+		g_strPort = devices[0].comm;
 	
-	if (iDevicesFound < 1) 
-	{
-		log(CEC_LOG_ERROR, "CEC Adapter not found");
-		UnloadLibCec(g_parser);
-		exit(1);
+	    if (!g_parser->Open(g_strPort.c_str())) {
+			log(CEC_LOG_ERROR, "Unable to open the CEC Adapter on port: %s", g_strPort.c_str());
+			usleep(2000000);
+			continue;
+	    }
+		
+		break;	
 	}
 
-	g_strPort = devices[0].comm;
-	
-    if (!g_parser->Open(g_strPort.c_str()))
-    {
-      log(CEC_LOG_ERROR, "Unable to open the CEC Adapter on port: %s", g_strPort.c_str());
-      UnloadLibCec(g_parser);
-      return 1;
-    }
-
+	//g_log_level = CEC_LOG_ALL;
 	log(CEC_LOG_DEBUG, "Opened CEC Adapter: %s", g_strPort.c_str());
 	run_socket_server(CEC_DAEMON_DEFAULT_PORT);
 	
