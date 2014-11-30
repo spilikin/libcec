@@ -115,3 +115,11 @@ src/libcec-wmc/obj
 /dpinst-amd64.exe
 
 /documentation
+
+compile
+src/daemon/.deps
+src/daemon/.libs
+src/daemon/cec-daemon
+src/daemon/*.o
+src/daemon/.ubuntu
+
